@@ -1,0 +1,398 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HARDENED HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidDeviceCode(code) {
+      return code is string && code.matches('^[0-9]{9}$');
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- ENTITY VALIDATION BLUEPRINTS ---
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
+             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             data.preferredLanguage in ['bn', 'en'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidUserDevice(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.deviceName is string && data.deviceName.size() >= 1 && data.deviceName.size() <= 60 &&
+             data.deviceModel is string && data.deviceModel.size() >= 1 && data.deviceModel.size() <= 80 &&
+             isValidDeviceCode(data.deviceCode) &&
+             data.online is bool &&
+             data.favorite is bool &&
+             (!('localIp' in data) || (data.localIp is string && data.localIp.size() <= 64)) &&
+             data.p2pPort is int && data.p2pPort >= 0 && data.p2pPort <= 65535 &&
+             data.accessibilityReady is bool &&
+             data.screenCaptureReady is bool &&
+             data.cameraReady is bool &&
+             isValidTimestamp(data.lastSeenAt) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidHistory(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.peerUserId is string && data.peerUserId.size() >= 1 && data.peerUserId.size() <= 128 &&
+             data.peerDeviceId is string && data.peerDeviceId.size() >= 1 && data.peerDeviceId.size() <= 128 &&
+             data.peerDeviceName is string && data.peerDeviceName.size() >= 1 && data.peerDeviceName.size() <= 60 &&
+             data.peerDeviceCode is string && data.peerDeviceCode.size() <= 20 &&
+             data.direction in ['outgoing', 'incoming'] &&
+             data.status in ['connected', 'disconnected', 'rejected', 'failed'] &&
+             data.durationSeconds is int && data.durationSeconds >= 0 && data.durationSeconds <= 8640000 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidDeviceDirectory(data) {
+      return data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+             data.deviceId is string && data.deviceId.size() >= 1 && data.deviceId.size() <= 128 &&
+             isValidDeviceCode(data.deviceCode) &&
+             data.deviceName is string && data.deviceName.size() >= 1 && data.deviceName.size() <= 60 &&
+             data.ownerDisplayName is string && data.ownerDisplayName.size() >= 1 && data.ownerDisplayName.size() <= 60 &&
+             data.online is bool &&
+             (!('localIp' in data) || (data.localIp is string && data.localIp.size() <= 64)) &&
+             data.p2pPort is int && data.p2pPort >= 0 && data.p2pPort <= 65535 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSession(data) {
+      return data.hostUid is string && data.hostUid.size() >= 1 && data.hostUid.size() <= 128 &&
+             data.hostDeviceId is string && data.hostDeviceId.size() >= 1 && data.hostDeviceId.size() <= 128 &&
+             data.hostDeviceName is string && data.hostDeviceName.size() >= 1 && data.hostDeviceName.size() <= 60 &&
+             data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 60 &&
+             isValidDeviceCode(data.hostDeviceCode) &&
+             (!('hostLocalIp' in data) || (data.hostLocalIp is string && data.hostLocalIp.size() <= 64)) &&
+             data.hostP2pPort is int && data.hostP2pPort >= 0 && data.hostP2pPort <= 65535 &&
+             data.controllerUid is string && data.controllerUid.size() <= 128 &&
+             data.controllerName is string && data.controllerName.size() <= 60 &&
+             data.controllerDeviceName is string && data.controllerDeviceName.size() <= 60 &&
+             data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 2 &&
+             data.memberUids[0] is string &&
+             data.joinToken is string && data.joinToken.size() >= 6 && data.joinToken.size() <= 64 &&
+             data.status in ['waiting_link', 'pending', 'approved', 'rejected', 'ended', 'expired'] &&
+             data.screenShareAllowed is bool &&
+             data.remoteTouchAllowed is bool &&
+             data.remoteCameraAllowed is bool &&
+             data.voiceCallState in ['idle', 'ringing', 'active', 'rejected', 'ended'] &&
+             data.voiceCallerUid is string && data.voiceCallerUid.size() <= 128 &&
+             data.cameraFacing in ['back', 'front'] &&
+             data.videoQuality in ['low', 'medium', 'high'] &&
+             data.targetFps is int && data.targetFps >= 5 && data.targetFps <= 60 &&
+             data.brightnessPercent is int && data.brightnessPercent >= 0 && data.brightnessPercent <= 100 &&
+             (!('sdpOffer' in data) || (data.sdpOffer is string && data.sdpOffer.size() <= 32768)) &&
+             (!('sdpAnswer' in data) || (data.sdpAnswer is string && data.sdpAnswer.size() <= 32768)) &&
+             data.expiresAtMillis is int && data.expiresAtMillis > 0 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidChatMessage(data) {
+      return data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 2 &&
+             data.memberUids[0] is string &&
+             data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 60 &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+             data.delivered is bool &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidIceCandidate(data) {
+      return data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 2 &&
+             data.memberUids[0] is string &&
+             data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 &&
+             data.sdpMid is string && data.sdpMid.size() <= 64 &&
+             data.sdpMLineIndex is int && data.sdpMLineIndex >= 0 && data.sdpMLineIndex <= 32 &&
+             data.candidate is string && data.candidate.size() >= 1 && data.candidate.size() <= 2048 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidRemoteCommand(data) {
+      return data.memberUids is list && data.memberUids.size() >= 1 && data.memberUids.size() <= 2 &&
+             data.memberUids[0] is string &&
+             data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 &&
+             data.type in ['tap', 'swipe', 'scroll', 'back', 'home', 'recents', 'notifications', 'brightness', 'volume'] &&
+             data.x is number && data.x >= 0 && data.x <= 1 &&
+             data.y is number && data.y >= 0 && data.y <= 1 &&
+             data.endX is number && data.endX >= 0 && data.endX <= 1 &&
+             data.endY is number && data.endY >= 0 && data.endY <= 1 &&
+             data.value is number && data.value >= 0 && data.value <= 100 &&
+             data.executed is bool &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    // --- COLLECTIONS ---
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'preferredLanguage', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'email', 'photoUrl', 'preferredLanguage', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'photoUrl', 'preferredLanguage', 'updatedAt']);
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      match /devices/{deviceId} {
+        allow get: if isValidId(userId) && isValidId(deviceId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isValidId(deviceId) &&
+                         isOwner(userId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'deviceName', 'deviceModel', 'deviceCode', 'online', 'favorite', 'p2pPort', 'accessibilityReady', 'screenCaptureReady', 'cameraReady', 'lastSeenAt', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'deviceName', 'deviceModel', 'deviceCode', 'online', 'favorite', 'localIp', 'p2pPort', 'accessibilityReady', 'screenCaptureReady', 'cameraReady', 'lastSeenAt', 'createdAt', 'updatedAt']) &&
+                         isValidUserDevice(incoming());
+        allow update: if isValidId(userId) && isValidId(deviceId) &&
+                         isOwner(userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().deviceCode == existing().deviceCode &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidUserDevice(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['deviceName', 'deviceModel', 'online', 'favorite', 'localIp', 'p2pPort', 'accessibilityReady', 'screenCaptureReady', 'cameraReady', 'lastSeenAt', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(deviceId) && isOwner(userId);
+      }
+
+      match /history/{historyId} {
+        allow get: if isValidId(userId) && isValidId(historyId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isValidId(historyId) &&
+                         isOwner(userId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'peerUserId', 'peerDeviceId', 'peerDeviceName', 'peerDeviceCode', 'direction', 'status', 'durationSeconds', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'peerUserId', 'peerDeviceId', 'peerDeviceName', 'peerDeviceCode', 'direction', 'status', 'durationSeconds', 'createdAt', 'updatedAt']) &&
+                         isValidHistory(incoming());
+        allow update: if isValidId(userId) && isValidId(historyId) &&
+                         isOwner(userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidHistory(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'durationSeconds', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(historyId) && isOwner(userId);
+      }
+    }
+
+    match /device_directory/{deviceCode} {
+      // Exact 9-digit code lookup only (no PII stored); list restricted to own entries
+      allow get: if isSignedIn() && isValidDeviceCode(deviceCode);
+      allow list: if isSignedIn() && existing().ownerUid == request.auth.uid;
+      allow create: if isSignedIn() &&
+                       isValidDeviceCode(deviceCode) &&
+                       incoming().deviceCode == deviceCode &&
+                       incoming().ownerUid == request.auth.uid &&
+                       incoming().keys().hasAll(['ownerUid', 'deviceId', 'deviceCode', 'deviceName', 'ownerDisplayName', 'online', 'p2pPort', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['ownerUid', 'deviceId', 'deviceCode', 'deviceName', 'ownerDisplayName', 'online', 'localIp', 'p2pPort', 'createdAt', 'updatedAt']) &&
+                       isValidDeviceDirectory(incoming());
+      allow update: if isSignedIn() &&
+                       isValidDeviceCode(deviceCode) &&
+                       existing().ownerUid == request.auth.uid &&
+                       incoming().ownerUid == existing().ownerUid &&
+                       incoming().deviceId == existing().deviceId &&
+                       incoming().deviceCode == existing().deviceCode &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidDeviceDirectory(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['deviceName', 'ownerDisplayName', 'online', 'localIp', 'p2pPort', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidDeviceCode(deviceCode) && existing().ownerUid == request.auth.uid;
+    }
+
+    match /sessions/{sessionId} {
+      allow get: if isSignedIn() && isValidId(sessionId) &&
+                    (request.auth.uid in existing().memberUids || existing().status == 'waiting_link');
+      allow list: if isSignedIn() && (request.auth.uid in existing().memberUids);
+
+      allow create: if isSignedIn() &&
+                       isValidId(sessionId) &&
+                       isValidSession(incoming()) &&
+                       incoming().keys().hasAll([
+                         'hostUid', 'hostDeviceId', 'hostDeviceName', 'hostName', 'hostDeviceCode', 'hostP2pPort',
+                         'controllerUid', 'controllerName', 'controllerDeviceName', 'memberUids', 'joinToken',
+                         'status', 'screenShareAllowed', 'remoteTouchAllowed', 'remoteCameraAllowed',
+                         'voiceCallState', 'voiceCallerUid', 'cameraFacing', 'videoQuality', 'targetFps',
+                         'brightnessPercent', 'expiresAtMillis', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'hostUid', 'hostDeviceId', 'hostDeviceName', 'hostName', 'hostDeviceCode', 'hostLocalIp', 'hostP2pPort',
+                         'controllerUid', 'controllerName', 'controllerDeviceName', 'memberUids', 'joinToken',
+                         'status', 'screenShareAllowed', 'remoteTouchAllowed', 'remoteCameraAllowed',
+                         'voiceCallState', 'voiceCallerUid', 'cameraFacing', 'videoQuality', 'targetFps',
+                         'brightnessPercent', 'sdpOffer', 'sdpAnswer', 'expiresAtMillis', 'createdAt', 'updatedAt'
+                       ]) &&
+                       // Security invariant: nobody can create a pre-approved session
+                       incoming().screenShareAllowed == false &&
+                       incoming().remoteTouchAllowed == false &&
+                       incoming().remoteCameraAllowed == false &&
+                       incoming().voiceCallState == 'idle' &&
+                       (
+                         // Host creating a support link session
+                         (incoming().hostUid == request.auth.uid &&
+                          incoming().controllerUid == '' &&
+                          incoming().status == 'waiting_link' &&
+                          incoming().memberUids.size() == 1 &&
+                          incoming().memberUids[0] == request.auth.uid) ||
+                         // Controller requesting connection to a host device
+                         (incoming().controllerUid == request.auth.uid &&
+                          incoming().status == 'pending' &&
+                          incoming().memberUids.size() == 2 &&
+                          incoming().hostUid in incoming().memberUids &&
+                          request.auth.uid in incoming().memberUids)
+                       );
+
+      allow update: if isSignedIn() &&
+                       isValidId(sessionId) &&
+                       isValidSession(incoming()) &&
+                       incoming().hostUid == existing().hostUid &&
+                       incoming().hostDeviceId == existing().hostDeviceId &&
+                       incoming().hostDeviceCode == existing().hostDeviceCode &&
+                       incoming().joinToken == existing().joinToken &&
+                       incoming().createdAt == existing().createdAt &&
+                       // Terminal states lock session from reactivation
+                       !(existing().status in ['rejected', 'ended', 'expired']) &&
+                       (
+                         // Action 1: Controller claiming a waiting support link (still pending host approval)
+                         (existing().status == 'waiting_link' &&
+                          incoming().status == 'pending' &&
+                          incoming().controllerUid == request.auth.uid &&
+                          incoming().memberUids.size() == 2 &&
+                          existing().hostUid in incoming().memberUids &&
+                          request.auth.uid in incoming().memberUids &&
+                          incoming().screenShareAllowed == false &&
+                          incoming().remoteTouchAllowed == false &&
+                          incoming().remoteCameraAllowed == false &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['controllerUid', 'controllerName', 'controllerDeviceName', 'memberUids', 'status', 'updatedAt'])) ||
+                         // Action 2: Host approving, rejecting, or updating device permissions/streams
+                         (request.auth.uid == existing().hostUid &&
+                          incoming().controllerUid == existing().controllerUid &&
+                          incoming().memberUids == existing().memberUids &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'status', 'screenShareAllowed', 'remoteTouchAllowed', 'remoteCameraAllowed',
+                            'voiceCallState', 'voiceCallerUid', 'cameraFacing', 'videoQuality', 'targetFps',
+                            'brightnessPercent', 'hostLocalIp', 'hostP2pPort', 'sdpOffer', 'sdpAnswer', 'updatedAt'
+                          ])) ||
+                         // Action 3: Approved controller or member updating stream settings, signaling, voice call, or ending session
+                         (request.auth.uid in existing().memberUids &&
+                          incoming().controllerUid == existing().controllerUid &&
+                          incoming().memberUids == existing().memberUids &&
+                          incoming().screenShareAllowed == existing().screenShareAllowed &&
+                          incoming().remoteTouchAllowed == existing().remoteTouchAllowed &&
+                          incoming().remoteCameraAllowed == existing().remoteCameraAllowed &&
+                          (incoming().status == existing().status || incoming().status == 'ended') &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'status', 'voiceCallState', 'voiceCallerUid', 'cameraFacing',
+                            'videoQuality', 'targetFps', 'brightnessPercent', 'sdpOffer', 'sdpAnswer', 'updatedAt'
+                          ]))
+                       );
+
+      allow delete: if isSignedIn() && isValidId(sessionId) && request.auth.uid == existing().hostUid;
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(sessionId) && isValidId(messageId) &&
+                      request.auth.uid in existing().memberUids;
+        allow list: if isSignedIn() && isValidId(sessionId) &&
+                      request.auth.uid in existing().memberUids;
+        allow create: if isSignedIn() && isValidId(sessionId) && isValidId(messageId) &&
+                         isValidChatMessage(incoming()) &&
+                         incoming().senderUid == request.auth.uid &&
+                         request.auth.uid in incoming().memberUids &&
+                         incoming().keys().hasAll(['memberUids', 'senderUid', 'senderName', 'text', 'delivered', 'createdAt']) &&
+                         incoming().keys().hasOnly(['memberUids', 'senderUid', 'senderName', 'text', 'delivered', 'createdAt']) &&
+                         exists(/databases/$(database)/documents/sessions/$(sessionId)) &&
+                         request.auth.uid in get(/databases/$(database)/documents/sessions/$(sessionId)).data.memberUids;
+        allow update: if isSignedIn() && isValidId(sessionId) && isValidId(messageId) &&
+                         request.auth.uid in existing().memberUids &&
+                         incoming().senderUid == existing().senderUid &&
+                         incoming().memberUids == existing().memberUids &&
+                         incoming().text == existing().text &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidChatMessage(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['delivered']);
+        allow delete: if isSignedIn() && isValidId(sessionId) && isValidId(messageId) &&
+                         request.auth.uid in existing().memberUids;
+      }
+
+      match /ice_candidates/{candidateId} {
+        allow get: if isSignedIn() && isValidId(sessionId) && isValidId(candidateId) &&
+                      request.auth.uid in existing().memberUids;
+        allow list: if isSignedIn() && isValidId(sessionId) &&
+                      request.auth.uid in existing().memberUids;
+        allow create: if isSignedIn() && isValidId(sessionId) && isValidId(candidateId) &&
+                         isValidIceCandidate(incoming()) &&
+                         incoming().senderUid == request.auth.uid &&
+                         request.auth.uid in incoming().memberUids &&
+                         incoming().keys().hasAll(['memberUids', 'senderUid', 'sdpMid', 'sdpMLineIndex', 'candidate', 'createdAt']) &&
+                         incoming().keys().hasOnly(['memberUids', 'senderUid', 'sdpMid', 'sdpMLineIndex', 'candidate', 'createdAt']) &&
+                         exists(/databases/$(database)/documents/sessions/$(sessionId)) &&
+                         request.auth.uid in get(/databases/$(database)/documents/sessions/$(sessionId)).data.memberUids;
+        allow delete: if isSignedIn() && isValidId(sessionId) && isValidId(candidateId) &&
+                         request.auth.uid in existing().memberUids;
+      }
+
+      match /commands/{commandId} {
+        allow get: if isSignedIn() && isValidId(sessionId) && isValidId(commandId) &&
+                      request.auth.uid in existing().memberUids;
+        allow list: if isSignedIn() && isValidId(sessionId) &&
+                      request.auth.uid in existing().memberUids;
+        allow create: if isSignedIn() && isValidId(sessionId) && isValidId(commandId) &&
+                         isValidRemoteCommand(incoming()) &&
+                         incoming().senderUid == request.auth.uid &&
+                         request.auth.uid in incoming().memberUids &&
+                         incoming().keys().hasAll(['memberUids', 'senderUid', 'type', 'x', 'y', 'endX', 'endY', 'value', 'executed', 'createdAt']) &&
+                         incoming().keys().hasOnly(['memberUids', 'senderUid', 'type', 'x', 'y', 'endX', 'endY', 'value', 'executed', 'createdAt']) &&
+                         exists(/databases/$(database)/documents/sessions/$(sessionId)) &&
+                         get(/databases/$(database)/documents/sessions/$(sessionId)).data.status == 'approved' &&
+                         get(/databases/$(database)/documents/sessions/$(sessionId)).data.remoteTouchAllowed == true &&
+                         request.auth.uid in get(/databases/$(database)/documents/sessions/$(sessionId)).data.memberUids;
+        allow update: if isSignedIn() && isValidId(sessionId) && isValidId(commandId) &&
+                         request.auth.uid in existing().memberUids &&
+                         incoming().senderUid == existing().senderUid &&
+                         incoming().memberUids == existing().memberUids &&
+                         incoming().type == existing().type &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidRemoteCommand(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['executed']);
+        allow delete: if isSignedIn() && isValidId(sessionId) && isValidId(commandId) &&
+                         request.auth.uid in existing().memberUids;
+      }
+    }
+  }
+}

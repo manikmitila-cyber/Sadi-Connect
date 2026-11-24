@@ -1,0 +1,6 @@
+{
+  "name": "Sadi Connect",
+  "description": "Remote screen sharing, live remote touch control, voice calling, remote camera preview, and real-time chat between Android devices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

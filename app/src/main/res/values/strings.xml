@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Sadi Connect</string>
+    <string name="accessibility_service_label">Sadi Connect Remote Control</string>
+    <string name="accessibility_service_description">Allows authorized remote tap, swipe, scroll, and navigation gestures only during an explicitly approved Sadi Connect remote session.</string>
+    <string name="notification_channel_screen_share">Screen Sharing</string>
+    <string name="notification_screen_share_title">Sadi Connect Screen Sharing Active</string>
+    <string name="notification_screen_share_text">Your screen is being shared securely. Tap Stop to end anytime.</string>
+    <string name="action_stop_sharing">Stop Sharing</string>
+</resources>

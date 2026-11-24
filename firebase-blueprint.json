@@ -1,0 +1,395 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated Sadi Connect user profile and preferences",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name"
+        },
+        "email": {
+          "type": "string",
+          "description": "Private user email address"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "Profile avatar URL"
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "enum": ["bn", "en"],
+          "description": "Selected UI language"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update"
+        }
+      },
+      "required": ["userId", "displayName", "preferredLanguage", "createdAt", "updatedAt"]
+    },
+    "UserDevice": {
+      "title": "UserDevice",
+      "description": "Registered Android device belonging to a Sadi Connect account",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID"
+        },
+        "deviceName": {
+          "type": "string",
+          "description": "User-editable device name"
+        },
+        "deviceModel": {
+          "type": "string",
+          "description": "Android Build model"
+        },
+        "deviceCode": {
+          "type": "string",
+          "description": "Unique 9-digit device code"
+        },
+        "online": {
+          "type": "boolean",
+          "description": "Current online status"
+        },
+        "favorite": {
+          "type": "boolean",
+          "description": "Pinned favorite device flag"
+        },
+        "localIp": {
+          "type": "string",
+          "description": "Local Wi-Fi IP address for P2P"
+        },
+        "p2pPort": {
+          "type": "integer",
+          "description": "Local P2P socket port"
+        },
+        "accessibilityReady": {
+          "type": "boolean",
+          "description": "Whether AccessibilityService is enabled"
+        },
+        "screenCaptureReady": {
+          "type": "boolean",
+          "description": "Whether MediaProjection is ready"
+        },
+        "cameraReady": {
+          "type": "boolean",
+          "description": "Whether camera permission is granted"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last heartbeat"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update"
+        }
+      },
+      "required": [
+        "userId",
+        "deviceName",
+        "deviceModel",
+        "deviceCode",
+        "online",
+        "favorite",
+        "p2pPort",
+        "accessibilityReady",
+        "screenCaptureReady",
+        "cameraReady",
+        "lastSeenAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ConnectionHistory": {
+      "title": "ConnectionHistory",
+      "description": "Recorded remote connection history entry for a user",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner UID"
+        },
+        "peerUserId": {
+          "type": "string",
+          "description": "Remote user UID"
+        },
+        "peerDeviceId": {
+          "type": "string",
+          "description": "Remote device ID"
+        },
+        "peerDeviceName": {
+          "type": "string",
+          "description": "Remote device display name"
+        },
+        "peerDeviceCode": {
+          "type": "string",
+          "description": "Remote 9-digit device code"
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["outgoing", "incoming"],
+          "description": "Connection direction"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["connected", "disconnected", "rejected", "failed"],
+          "description": "Outcome status"
+        },
+        "durationSeconds": {
+          "type": "integer",
+          "description": "Duration in seconds"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "peerUserId",
+        "peerDeviceId",
+        "peerDeviceName",
+        "peerDeviceCode",
+        "direction",
+        "status",
+        "durationSeconds",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DeviceDirectoryEntry": {
+      "title": "DeviceDirectoryEntry",
+      "description": "Publicly resolvable 9-digit code directory entry without PII",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID"
+        },
+        "deviceId": {
+          "type": "string",
+          "description": "Device document ID"
+        },
+        "deviceCode": {
+          "type": "string",
+          "description": "9-digit numeric code"
+        },
+        "deviceName": {
+          "type": "string",
+          "description": "Public device display name"
+        },
+        "ownerDisplayName": {
+          "type": "string",
+          "description": "Owner display name"
+        },
+        "online": {
+          "type": "boolean"
+        },
+        "localIp": {
+          "type": "string"
+        },
+        "p2pPort": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerUid",
+        "deviceId",
+        "deviceCode",
+        "deviceName",
+        "ownerDisplayName",
+        "online",
+        "p2pPort",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RemoteSession": {
+      "title": "RemoteSession",
+      "description": "Authenticated remote control, screen share, voice call, camera, and chat session",
+      "type": "object",
+      "properties": {
+        "hostUid": { "type": "string" },
+        "hostDeviceId": { "type": "string" },
+        "hostDeviceName": { "type": "string" },
+        "hostName": { "type": "string" },
+        "hostDeviceCode": { "type": "string" },
+        "hostLocalIp": { "type": "string" },
+        "hostP2pPort": { "type": "integer" },
+        "controllerUid": { "type": "string" },
+        "controllerName": { "type": "string" },
+        "controllerDeviceName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "joinToken": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["waiting_link", "pending", "approved", "rejected", "ended", "expired"]
+        },
+        "screenShareAllowed": { "type": "boolean" },
+        "remoteTouchAllowed": { "type": "boolean" },
+        "remoteCameraAllowed": { "type": "boolean" },
+        "voiceCallState": {
+          "type": "string",
+          "enum": ["idle", "ringing", "active", "rejected", "ended"]
+        },
+        "voiceCallerUid": { "type": "string" },
+        "cameraFacing": {
+          "type": "string",
+          "enum": ["back", "front"]
+        },
+        "videoQuality": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "targetFps": { "type": "integer" },
+        "brightnessPercent": { "type": "integer" },
+        "sdpOffer": { "type": "string" },
+        "sdpAnswer": { "type": "string" },
+        "expiresAtMillis": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "hostUid",
+        "hostDeviceId",
+        "hostDeviceName",
+        "hostName",
+        "hostDeviceCode",
+        "hostP2pPort",
+        "controllerUid",
+        "controllerName",
+        "controllerDeviceName",
+        "memberUids",
+        "joinToken",
+        "status",
+        "screenShareAllowed",
+        "remoteTouchAllowed",
+        "remoteCameraAllowed",
+        "voiceCallState",
+        "voiceCallerUid",
+        "cameraFacing",
+        "videoQuality",
+        "targetFps",
+        "brightnessPercent",
+        "expiresAtMillis",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Real-time chat message within a session",
+      "type": "object",
+      "properties": {
+        "memberUids": { "type": "array" },
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "delivered": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["memberUids", "senderUid", "senderName", "text", "delivered", "createdAt"]
+    },
+    "IceCandidate": {
+      "title": "IceCandidate",
+      "description": "WebRTC ICE candidate for P2P NAT traversal",
+      "type": "object",
+      "properties": {
+        "memberUids": { "type": "array" },
+        "senderUid": { "type": "string" },
+        "sdpMid": { "type": "string" },
+        "sdpMLineIndex": { "type": "integer" },
+        "candidate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["memberUids", "senderUid", "sdpMid", "sdpMLineIndex", "candidate", "createdAt"]
+    },
+    "RemoteCommand": {
+      "title": "RemoteCommand",
+      "description": "Remote touch, navigation, or control command",
+      "type": "object",
+      "properties": {
+        "memberUids": { "type": "array" },
+        "senderUid": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["tap", "swipe", "scroll", "back", "home", "recents", "notifications", "brightness", "volume"]
+        },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "endX": { "type": "number" },
+        "endY": { "type": "number" },
+        "value": { "type": "number" },
+        "executed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["memberUids", "senderUid", "type", "x", "y", "endX", "endY", "value", "executed", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and language preference"
+    },
+    "/users/{userId}/devices/{deviceId}": {
+      "schema": { "$ref": "#/entities/UserDevice" },
+      "description": "Devices registered to a user account"
+    },
+    "/users/{userId}/history/{historyId}": {
+      "schema": { "$ref": "#/entities/ConnectionHistory" },
+      "description": "User connection history entries"
+    },
+    "/device_directory/{deviceCode}": {
+      "schema": { "$ref": "#/entities/DeviceDirectoryEntry" },
+      "description": "9-digit code lookup directory for connecting devices"
+    },
+    "/sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/RemoteSession" },
+      "description": "Remote screen sharing, control, call, and signaling sessions"
+    },
+    "/sessions/{sessionId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Session chat messages"
+    },
+    "/sessions/{sessionId}/ice_candidates/{candidateId}": {
+      "schema": { "$ref": "#/entities/IceCandidate" },
+      "description": "Session WebRTC ICE candidates"
+    },
+    "/sessions/{sessionId}/commands/{commandId}": {
+      "schema": { "$ref": "#/entities/RemoteCommand" },
+      "description": "Session remote touch and navigation commands"
+    }
+  }
+}
