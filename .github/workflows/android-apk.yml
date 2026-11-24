@@ -23,6 +23,12 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
+      - name: Cache Debug Keystore
+        uses: actions/cache@v4
+        with:
+          path: debug.keystore
+          key: debug-keystore-v1
+
       - name: Restore or Create Debug Keystore
         run: |
           if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
@@ -31,6 +37,15 @@ jobs:
           if [ ! -f debug.keystore ]; then
             keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
+
+      - name: Show Debug Keystore SHA fingerprints
+        run: |
+          {
+            echo "## Debug keystore fingerprints (add SHA-1 to Firebase)"
+            echo '```'
+            keytool -list -v -keystore debug.keystore -storepass android -alias androiddebugkey | grep -E "SHA1|SHA256"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Accept Android SDK Licenses
         run: |
