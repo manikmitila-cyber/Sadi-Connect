@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "974669432890-avrj6l2io8cavabi45gj522qb86t5ugn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.sadiconnect.xkqmvp",
+            "certificate_hash": "01d7d400dd3a818d7c76706395c18f2836f50ee0"
+          }
+        },
+        {
           "client_id": "974669432890-onukrh3bh4p4f97eihke2f0nbj8hth2e.apps.googleusercontent.com",
           "client_type": 3
         }
